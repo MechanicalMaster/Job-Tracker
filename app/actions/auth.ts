@@ -1,6 +1,6 @@
 "use server"
 
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 
@@ -22,106 +22,79 @@ const signupSchema = z
     path: ["confirmPassword"],
   })
 
+// Helper to get absolute URL for API routes
+function getApiUrl(path: string) {
+  const host = headers().get("host");
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  return `${protocol}://${host}${path}`;
+}
+
+// --- Supabase API integration helpers ---
+async function postJson(path: string, body: any) {
+  const url = getApiUrl(path);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    credentials: 'include',
+  });
+  return res.json();
+}
+
+async function getJson(path: string) {
+  const url = getApiUrl(path);
+  const res = await fetch(url, { credentials: 'include' });
+  return res.json();
+}
+
+// --- Updated Actions ---
+
 export async function loginAction(formData: FormData) {
-  // In a real app, validate the form data
-  const email = formData.get("email") as string
-  const password = formData.get("password") as string
-
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
   try {
-    // Validate form data
-    loginSchema.parse({ email, password })
-
-    // In a real app, you would verify credentials against a database
-    // For now, we'll just simulate a successful login with dummy credentials
-    if (email === "demo@example.com" && password === "password123") {
-      // Set a session cookie
-      cookies().set("session", "dummy-session-token", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 7, // 1 week
-        path: "/",
-      })
-
-      // Redirect to dashboard
-      redirect("/dashboard")
+    loginSchema.parse({ email, password });
+    const result = await postJson('/api/auth/login', { email, password });
+    if (result.user) {
+      redirect('/dashboard');
+    } else {
+      // TODO: Surface error to UI
+      throw new Error(result.error || 'Login failed');
     }
-
-    // For demo purposes, let's just redirect to dashboard anyway
-    cookies().set("session", "dummy-session-token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: "/",
-    })
-
-    redirect("/dashboard")
   } catch (error) {
-    // In a real app, you would handle validation errors
-    console.error("Login error:", error)
-
-    // For demo purposes, redirect to dashboard anyway
-    cookies().set("session", "dummy-session-token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: "/",
-    })
-
-    redirect("/dashboard")
+    // TODO: Surface error to UI
+    console.error("Login error:", error);
+    throw error;
   }
 }
 
 export async function signupAction(formData: FormData) {
-  // In a real app, validate the form data
-  const name = formData.get("name") as string
-  const email = formData.get("email") as string
-  const password = formData.get("password") as string
-  const confirmPassword = formData.get("confirmPassword") as string
-
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
   try {
-    // Validate form data
-    signupSchema.parse({ name, email, password, confirmPassword })
-
-    // In a real app, you would create a user in the database
-    // For now, we'll just simulate a successful signup
-
-    // Set a session cookie
-    cookies().set("session", "dummy-session-token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: "/",
-    })
-
-    // Redirect to dashboard
-    redirect("/dashboard")
+    signupSchema.parse({ name, email, password, confirmPassword });
+    const result = await postJson('/api/auth/signup', { name, email, password, confirmPassword });
+    if (result.user) {
+      redirect('/dashboard');
+    } else {
+      // TODO: Surface error to UI
+      throw new Error(result.error || 'Signup failed');
+    }
   } catch (error) {
-    // In a real app, you would handle validation errors
-    console.error("Signup error:", error)
-
-    // For demo purposes, redirect to dashboard anyway
-    cookies().set("session", "dummy-session-token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: "/",
-    })
-
-    redirect("/dashboard")
+    // TODO: Surface error to UI
+    console.error("Signup error:", error);
+    throw error;
   }
 }
 
 export async function logoutAction() {
-  // Delete the session cookie
-  cookies().delete("session")
-
-  // Redirect to home page
-  redirect("/")
+  await postJson('/api/auth/logout', {});
+  redirect('/login');
 }
 
 export async function checkAuth() {
-  // Check if the session cookie exists
-  const session = cookies().get("session")
-
-  return !!session
+  const result = await getJson('/api/auth/session');
+  return result.isAuthenticated;
 }
