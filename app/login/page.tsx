@@ -67,9 +67,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <Link href="/forgot-password" className="ml-auto inline-block text-sm underline">
-                    Forgot password?
-                  </Link>
+                  {/* Forgot password link removed as requested */}
                 </div>
                 <Input id="password" name="password" type="password" required />
               </div>
