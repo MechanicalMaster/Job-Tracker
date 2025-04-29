@@ -4,7 +4,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '../../../lib/supabase';
 import { z } from 'zod';
-import * as cookie from 'cookie';
+const cookie = require('cookie');
 
 const loginSchema = z.object({
   email: z.string().email(),
