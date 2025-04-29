@@ -5,13 +5,14 @@ import { DashboardNav } from "@/components/dashboard-nav"
 import { UserNav } from "@/components/user-nav"
 import { MobileNav } from "@/components/mobile-nav"
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   // Check if user is authenticated
-  const session = cookies().get("session")
+  const cookieStore = await cookies()
+  const session = cookieStore.get("sb-access-token")
 
   // If not authenticated, redirect to login
   if (!session) {

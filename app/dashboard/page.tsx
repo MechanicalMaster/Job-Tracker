@@ -13,12 +13,47 @@ import { useEffect, useState } from "react"
 export default function DashboardPage() {
   // Retrieve user's name from localStorage or default to 'User'
   const [userName, setUserName] = useState("User")
+  const [authLoading, setAuthLoading] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedName = localStorage.getItem("userName")
       if (storedName) setUserName(storedName)
+
+      // Check if the user is authenticated
+      fetch('/api/auth/session', {
+        credentials: 'include' // Important for cookies
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Auth status:', data);
+          setAuthLoading(false)
+          if (!data.authenticated) {
+            console.log('Not authenticated on dashboard, should redirect');
+            // Uncomment to enable redirect
+            // window.location.href = '/login';
+          }
+        })
+        .catch(error => {
+          console.error('Error checking auth:', error);
+          setAuthLoading(false)
+          setAuthError('Failed to verify authentication')
+        });
     }
   }, [])
+
+  if (authLoading) {
+    return <div className="flex items-center justify-center h-screen">
+      <p className="text-lg">Checking authentication...</p>
+    </div>
+  }
+
+  if (authError) {
+    return <div className="flex items-center justify-center h-screen">
+      <p className="text-lg text-red-500">{authError}</p>
+    </div>
+  }
 
   return (
     <div className="flex flex-col gap-6">
